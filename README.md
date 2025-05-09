@@ -25,19 +25,11 @@ This guide walks you through the process of exploring fNIRS (functional Near-Inf
 
 ## 1. Load the Data
 
-To begin, load the `.nirs` file using the `matfile` function in MATLAB. Here's an example for loading data for a specific subject:
+To begin, load the `.nirs` file using the `matfile` function in MATLAB. 
 
+Once the file is loaded, check the structure to understand its contents
+![Image](https://github.com/user-attachments/assets/50e48841-f3d5-4aa2-856f-8d003dd51f22)
 
-![Alt Text](path_to_image)
-
----
-
-## 2. Check the Structure of the Data
-
-Once the file is loaded, check the structure to understand its contents:
-
-
-![Alt Text](path_to_image)
 
 The file will contain several variables, including:
 
@@ -57,16 +49,23 @@ systemInfo: Metadata about the acquisition device
 
 For preprocessing, the main variables of interest are d, t, s, and aux for signals and events, and SD and ml for channel and optode information.
 
-## 3. Discover Optode Placement and Wavelengths
+## 2. Discover Optode Placement and Wavelengths
 
 To explore the source-detector layout and wavelengths, you can use the following code:
 
 
-![Alt Text](path_to_image)
+![Image](https://github.com/user-attachments/assets/77d517b8-1579-45f5-8fbc-2f12c1941ef6)
+![Image](https://github.com/user-attachments/assets/ba16c3b6-3714-49c7-b221-b20505e00119)
 
-## 4. Visualizing Optodes
+
+## 3. Get source detector distance and  Visualizing Optodes
+source deetector distance:
+
+![Image](https://github.com/user-attachments/assets/ad572615-1f3f-4e89-8fa1-38db62d07593)
+
 To visualize the optodes and the layout of the fNIRS channels in 3D, you can use visualization tools in MATLAB. This will help you understand the relative positioning of the optodes in the setup.
-![Alt Text](path_to_image)
+
+![Image](https://github.com/user-attachments/assets/9e610023-186f-4677-a286-76a28d94732d)
 
 
 
@@ -80,12 +79,22 @@ To visualize the optodes and the layout of the fNIRS channels in 3D, you can use
 ### 1. Visual Inspection
 Identify noisy channels or time windows to exclude from analysis.
 
-> 📷 _Insert screenshot of raw fNIRS signals_  
-> ![Raw Signals](images/raw_signals.png)
+![Image](https://github.com/user-attachments/assets/e8a832a0-2693-422d-9cc9-d8156dbbc704)
+
+Visual Inspection on subject level 
+![Image](https://github.com/user-attachments/assets/1f9603ff-bc9c-4426-a49d-76d561b3d639)
+
+Visual Inspection on channel level
+![Image](https://github.com/user-attachments/assets/3147f293-8434-408b-b313-351f60f0f9fb)
+
+Focus on specific channels for clarification:
+![Image](https://github.com/user-attachments/assets/14f8cf63-b9a3-4474-9b86-a66118a642d9)
+
 
 ### 2. Convert to Optical Density
 
 To convert raw intensity data to optical density
+![Image](https://github.com/user-attachments/assets/838300c7-9bd5-4977-9aeb-f55769fff982)
 
 
 ### 3. Motion Correction
@@ -107,22 +116,39 @@ Motion artifacts are common in fNIRS data and can significantly affect signal qu
 1. **PCA-Based Motion Correction**  
    - Uses PCA to detect and remove components related to motion.
    - Produces a corrected dataset by reconstructing the signal without the noisy components.
+![Image](https://github.com/user-attachments/assets/146a9ccf-cf12-4650-b7c6-1eab3e37c5a1)
 
 2. **Wavelet-Based Motion Correction**  
    - Utilizes a statistical threshold (e.g., IQR) to detect and eliminate motion artifacts in the wavelet-transformed data.
    - Helps preserve the integrity of the signal while reducing motion-induced noise.
+![Image](https://github.com/user-attachments/assets/2ffa5758-ea80-4893-bce1-4f9a272b93fc)
 
 ### 4. Filtering Techniques
 
 Frequency-Based Filters (Low pass, Band pass, High pass)
+![Image](https://github.com/user-attachments/assets/cac4ff43-ac36-406a-9992-05f2908914c9)
+
 
 PCA Filters: Decompose the signal and remove high variance components using PCAFilter(nSV).
+
+![Image](https://github.com/user-attachments/assets/12a83ad1-8b17-4816-b72b-30bc30132d66)
 
 ### 5. Baseline Correction
 Methods like Bandpass Filtering, Baseline Subtraction, and GLM with Drift Correction are used for baseline correction.
 
 ### 6. Modified Beer-Lambert Law (MBLL)
-To convert optical density to concentration changes of HbO (oxyhaemoglobin), HbR (deoxyhaemoglobin), and HbT (total haemoglobin)
+To convert optical density to concentration changes of:
+HbO (oxyhaemoglobin)
+
+![Image](https://github.com/user-attachments/assets/02c4b02e-29fa-4f2c-84d4-4e7fbc83c68d)
+
+
+HbR (deoxyhaemoglobin)
+![Image](https://github.com/user-attachments/assets/92a5444c-add9-4ffe-a62a-0248e1ce902e)
+
+
+HbT (total haemoglobin)
+![Image](https://github.com/user-attachments/assets/d49f6362-0d1e-4530-b330-48259cf075e8)
 
 
 ### 7. Short Separation Channel
