@@ -1,0 +1,227 @@
+%load subject
+>> sub_1= matfile('S1001_run01.nirs')
+> whos(sub_1)
+
+>> SD= sub_1.SD;
+wavelengths= SD.Lambda;
+
+>>ml= sub_1.ml;
+_________________________________________________________________ 
+
+%You can also get source-detector distance:
+>> SD= sub_1.SD;
+wavelengths= SD.Lambda;
+ml= sub_1.ml;
+srcPos= SD.SrcPos;
+detPos= SD.DetPos;
+for ch = 1:4
+s_idx = ml(ch, 1);
+d_idx= ml(ch, 2);
+dist= norm(srcPos(s_idx,:)- detPos(d_idx, :)); %euclidean distance
+fprintf('Channel %d distance: %.2f mm\n', ch, dist);
+end
+
+___________________________________________________________________
+
+%Visualizing the optodes:
+srcPos = SD.SrcPos;
+detPos = SD.DetPos;
+
+figure;
+hold on;
+axis equal;
+title('fNIRS Optode Layout and Channels');
+xlabel('X (mm)');
+ylabel('Y (mm)');
+zlabel('Z (mm)');
+
+
+% Plot sources in red
+for i = 1:size(srcPos, 1)
+    plot3(srcPos(i,1), srcPos(i,2), srcPos(i,3), 'ro', 'MarkerSize', 8, 'LineWidth', 2);
+    text(srcPos(i,1), srcPos(i,2), srcPos(i,3)+2, sprintf('S%d', i), 'Color', 'r');
+end
+
+% Plot detectors in blue
+for i = 1:size(detPos, 1)
+    plot3(detPos(i,1), detPos(i,2), detPos(i,3), 'bo', 'MarkerSize', 8, 'LineWidth', 2);
+    text(detPos(i,1), detPos(i,2), detPos(i,3)+2, sprintf('D%d', i), 'Color', 'b');
+end
+% Plot channels (source-detector pairs) as lines
+for ch = 1:size(ml, 1)
+    s_idx = ml(ch, 1);
+    d_idx = ml(ch, 2);
+    
+    % Coordinates
+    s_pos = srcPos(s_idx, :);
+    d_pos = detPos(d_idx, :);
+    
+    % Plot line
+    plot3([s_pos(1), d_pos(1)], [s_pos(2), d_pos(2)], [s_pos(3), d_pos(3)], ...
+        'k-', 'LineWidth', 1.5);
+    
+    % Channel midpoint label
+    mid = (s_pos + d_pos) / 2;
+    text(mid(1), mid(2), mid(3), sprintf('Ch%d', ch), ...
+        'Color', 'k', 'FontSize', 8);
+end
+
+grid on;
+view(3);  % 3D view
+>> 
+_________________________________________________________________
+% Visualize the Data
+d = sub_1.d;
+t = sub_1.t;
+ml = sub_1.ml;
+wavelengths = [690, 830];  % Known wavelengths
+
+nChannels = size(d, 2);
+
+figure;
+set(gcf, 'Name', 'Raw fNIRS Data - Visual Inspection', 'NumberTitle', 'off');
+tiledlayout('flow');
+
+for ch = 1:nChannels
+    nexttile;
+    plot(t, d(:, ch), 'k');
+    xlabel('Time (s)');
+    ylabel('Intensity');
+
+    s = ml(ch,1);
+    d_idx = ml(ch,2);
+    lambda_idx = ml(ch,4);  % Adjust if needed
+    lambda = wavelengths(lambda_idx);
+
+    title(sprintf('Ch %d (S%d-D%d, %d nm)', ch, s, d_idx, lambda));
+end
+
+sgtitle('Raw fNIRS Intensity Signals Across Channels');
+__________________________________________________________
+
+%plot specific channels
+
+figure
+plot(t, d(:,1:5))   % show first 4 channels
+xlabel('Time (s)')
+ylabel('Intensity')
+title('Raw Light Intensity - Channels 1 to 5')
+legend('Ch 1', 'Ch 2', 'Ch 3', 'Ch 4', 'Ch 5')
+
+_________________________________________________________________
+>> % Convert raw intensity to optical density
+dod = hmrIntensity2OD(d);  % Homer2 function
+
+% Plot OD for first 5 channels
+figure;
+plot(t, dod(:,1:5));
+xlabel('Time (s)');
+ylabel('Optical Density (a.u.)');
+title('Optical Density - Channels 1 to 5');
+legend('Ch 1', 'Ch 2', 'Ch 3', 'Ch 4', 'Ch 5');
+
+_________________________________________________________________________
+%PCA motion correction
+
+% Set threshold for SD-based motion detection (optional, or skip if not needed)
+tMotion = 0.5;    % motion threshold (SD units)
+tMask = 1.0;      % mask time (seconds)
+STDEVthresh = 50; % optional for motion detection (not for PCA itself)
+AMPthresh = 0.5;
+
+% Number of PCs to remove (typically 1 or 2)
+nSV = 1;
+
+% Run PCA-based motion correction
+[d_corr, ~] = hmrMotionCorrectPCA(data.d, data.t, nSV);
+
+% Replace original data with corrected data
+data.d = d_corr;
+
+% Save result
+save('S1030_run01_PCAcorrected.nirs', 'data');
+
+__________________________________________________________________
+
+%wavelet motion correction
+
+% IQR is the interquartile range threshold (suggested: 1.5–3)
+iqr_thresh = 1.5;
+
+% Run Wavelet-based correction
+[d_wavelet, ~] = hmrMotionCorrectWavelet(data.d, data.t, iqr_thresh);
+
+% Replace original data with corrected data
+data.d = d_wavelet;
+
+% Save result
+save('S1030_run01_WaveletCorrected.nirs', 'data');
+
+___________________________________________________________________
+% Bandpass filter
+
+hpf = 0.01;  % high-pass cutoff (Hz)
+lpf = 0.5;   % low-pass cutoff (Hz)
+% Assuming you've already converted d → dod (optical density)
+[dod_filt, ~] = hmrBandpassFilt(dod, t, SD, hpf, lpf);
+
+____________________________________________________________________
+% Apply MBLL
+dc = hmrOD2Conc(dod, SD, ppf);  % dc = HbO, HbR, HbT concentrations
+
+__________________________________________________________________
+
+%extract first the short channel
+for i = 1:size(SD.MeasList,1)
+    src_idx = SD.MeasList(i,1);
+    det_idx = SD.MeasList(i,2);
+    dist(i) = norm(SD.SrcPos(src_idx,:) - SD.DetPos(det_idx,:));
+end
+
+% Find short channels
+SS_idx = find(dist < 10);  % e.g., 8–10 mm cutoff
+[dod_ss, ~] = hmrSSRegression(dod, SD, t, rhoSD_ssThresh);
+
+_______________________________________________________________________________
+% Stimulus Visualization
+%stimulus detect
+%% Plot the AUX channels to inspect
+
+aux=finfo.aux;
+
+figure;
+plot(t, aux(:,1), 'r'); hold on;
+plot(t, aux(:,2), 'b');
+xlabel('Time (s)');
+legend('aux1 - Stimulus onset', 'aux2 - Response cue');
+title('AUX channels inspection');
+
+%% Detect stimulus onsets in AUX1
+
+% Set a threshold to detect when a trigger happens
+threshold = 0.5 * max(aux(:,1));  % Half the max value is safe
+stim_onsets = find(aux(:,1) > threshold);
+
+% Get only the rising edges (not continuous high samples)
+stim_onsets = stim_onsets([true; diff(stim_onsets) > 10]); % 10 samples apart minimum
+
+% Convert to time
+stim_times = t(stim_onsets);
+
+fprintf('Detected %d stimulus onsets.\n', numel(stim_times));
+
+%% Create a new stimulus matrix "s"
+s = zeros(length(t),1);  % initialize
+
+% Insert triggers at stimulus onset times
+for i = 1:length(stim_onsets)
+    s(stim_onsets(i)) = 1;   % mark the event
+end
+
+%% Optional: visualize the reconstructed stimulus
+figure;
+plot(t, aux(:,1)*0.5, 'r'); hold on;
+plot(t, s, 'k');
+legend('aux1 - Original', 's - Reconstructed stimulus');
+xlabel('Time (s)');
+title('Original AUX and Reconstructed Stimulus (s)');
