@@ -113,9 +113,11 @@ Motion artifacts are common in fNIRS data and can significantly affect signal qu
 
 ### Specific Methods Mentioned
 
-1. **PCA-Based Motion Correction**  
-   - Uses PCA to detect and remove components related to motion.
-   - Produces a corrected dataset by reconstructing the signal without the noisy components.
+1. **Spline-Based Motion Correction**
+   - Uses spline interpolation to correct segments of the signal contaminated by motion.
+   - Produces a corrected dataset by smoothly interpolating the affected segments and preserving the underlying signal.
+
+
 ![Image](https://github.com/user-attachments/assets/146a9ccf-cf12-4650-b7c6-1eab3e37c5a1)
 
 2. **Wavelet-Based Motion Correction**  
